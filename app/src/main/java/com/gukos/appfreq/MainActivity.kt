@@ -5,6 +5,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -34,7 +35,7 @@ class MainActivity : ComponentActivity() {
 		} else {
 			val appLaunchCounts = getAppLaunchCounts(this)
 			if (appLaunchCounts.isNotEmpty()) {
-				val listItems = appLaunchCounts.map { "${it.key}: ${it.value} 回" }
+				val listItems = appLaunchCounts.map { "${getAppNameFromPackage(this,it.key)}: ${it.value} 回" }
 				val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, listItems)
 				listView.adapter = adapter
 			} else {
@@ -95,9 +96,18 @@ private fun getAppLaunchCounts(context: Context): Map<String, Int> {
 	while (usageEvents.hasNextEvent()) {
 		usageEvents.getNextEvent(event)
 		if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
-			val packageName = event.packageName
+			val packageName=event.packageName
 			appLaunchCount[packageName] = appLaunchCount.getOrDefault(packageName, 0) + 1
 		}
 	}
-	return appLaunchCount
+	return appLaunchCount.toSortedMap(compareByDescending { appLaunchCount[it] })
+}
+
+// パッケージ名からアプリ名を取得
+private fun getAppNameFromPackage(context: Context,packageName: String): String {
+	return try {
+		context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)).toString()
+	} catch (e: Exception) {
+		"$packageName(アプリ名取得失敗)"
+	}
 }
