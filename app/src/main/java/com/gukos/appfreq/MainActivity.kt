@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
 			val appLaunchCounts = getAppLaunchCounts(this)
 			if (appLaunchCounts.isNotEmpty()) {
 				val listItems = appLaunchCounts.map { "${getAppNameFromPackage(this,it.key)}: ${it.value} 回" }
-				val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, listItems)
+				val adapter = ArrayAdapter(this, R.xml.simple_list_item, listItems)
 				listView.adapter = adapter
 			} else {
 				Toast.makeText(this, "データが取得できませんでした", Toast.LENGTH_LONG).show()
