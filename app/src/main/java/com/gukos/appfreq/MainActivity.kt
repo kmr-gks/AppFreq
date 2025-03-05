@@ -10,8 +10,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ListView
+import android.widget.Spinner
+import android.widget.Switch
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
@@ -23,11 +27,42 @@ import com.gukos.appfreq.ui.theme.AppFreqTheme
 
 
 class MainActivity : ComponentActivity() {
+
+	var durationMillis: Long = 1000L * 60 * 60 * 24
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
 		setContentView(R.layout.activity_main)
 		val listView: ListView = findViewById(R.id.appLaunchList)
+		val spinner: Spinner = findViewById(R.id.spinner_term)
+
+		// スピナに選択肢を設定
+		ArrayAdapter.createFromResource(
+			this,
+			R.array.duration_options,
+			android.R.layout.simple_spinner_item
+		).also { adapter ->
+			adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+			spinner.adapter = adapter
+		}
+
+		// スピナの選択イベントを設定
+		spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+			override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+				updateFrequencyData(position)
+				val appLaunchCounts = getAppLaunchCounts(this@MainActivity)
+				if (appLaunchCounts.isNotEmpty()) {
+					val listItems = appLaunchCounts.map { "${getAppNameFromPackage(this@MainActivity,it.key)}: ${it.value} 回" }
+					val adapter = ArrayAdapter(this@MainActivity, R.xml.simple_list_item, listItems)
+					listView.adapter = adapter
+				} else {
+					Toast.makeText(this@MainActivity, "データが取得できませんでした", Toast.LENGTH_LONG).show()
+				}
+			}
+			override fun onNothingSelected(parent: AdapterView<*>) {}
+		}
+
 		// 権限確認
 		if (!hasUsageStatsPermission(this)) {
 			startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
@@ -43,64 +78,71 @@ class MainActivity : ComponentActivity() {
 			}
 		}
 	}
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-	Text(
-		text = "Hello $name!",
-		modifier = modifier
-	)
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-	AppFreqTheme {
-		Greeting("Android")
-	}
-}
-
-// 使用履歴権限の確認
-private fun hasUsageStatsPermission(context: Context): Boolean {
-	val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-	return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-		// Android 10 (API 29)以降では `checkOp` を使用
-		appOps.unsafeCheckOpNoThrow(
-			AppOpsManager.OPSTR_GET_USAGE_STATS,
-			Process.myUid(),
-			context.packageName
-		) == AppOpsManager.MODE_ALLOWED
-	} else {
-		// それ以前のAPIレベルでは checkOpNoThrow を使用
-		@Suppress("DEPRECATION")
-		appOps.checkOpNoThrow(
-			AppOpsManager.OPSTR_GET_USAGE_STATS,
-			Process.myUid(),
-			context.packageName
-		) == AppOpsManager.MODE_ALLOWED
-	}
-}
-
-// 起動回数を取得
-private fun getAppLaunchCounts(context: Context): Map<String, Int> {
-	val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-
-	val endTime = System.currentTimeMillis()
-	val startTime = endTime - 1000L * 60 * 60 * 24 // 過去24時間
-
-	val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
-	val appLaunchCount = mutableMapOf<String, Int>()
-
-	val event = UsageEvents.Event()
-	while (usageEvents.hasNextEvent()) {
-		usageEvents.getNextEvent(event)
-		if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
-			val packageName=event.packageName
-			appLaunchCount[packageName] = appLaunchCount.getOrDefault(packageName, 0) + 1
+	private fun updateFrequencyData(position: Int) {
+		when(position) {
+			0 -> {
+				// a day
+				durationMillis = 1000L * 60 * 60 * 24
+			}
+			1 -> {
+				// a week
+				durationMillis = 1000L * 60 * 60 * 24 * 7
+			}
+			2 -> {
+				// a month
+				durationMillis = 1000L * 60 * 60 * 24 * 30
+			}
+			3 -> {
+				// a year
+				durationMillis = 1000L * 60 * 60 * 24 * 365
+			}
+			else -> {
+				durationMillis = 1000L * 60 * 60 * 24
+			}
 		}
 	}
-	return appLaunchCount.toSortedMap(compareByDescending { appLaunchCount[it] })
+	// 使用履歴権限の確認
+	private fun hasUsageStatsPermission(context: Context): Boolean {
+		val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+		return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+			// Android 10 (API 29)以降では `checkOp` を使用
+			appOps.unsafeCheckOpNoThrow(
+				AppOpsManager.OPSTR_GET_USAGE_STATS,
+				Process.myUid(),
+				context.packageName
+			) == AppOpsManager.MODE_ALLOWED
+		} else {
+			// それ以前のAPIレベルでは checkOpNoThrow を使用
+			@Suppress("DEPRECATION")
+			appOps.checkOpNoThrow(
+				AppOpsManager.OPSTR_GET_USAGE_STATS,
+				Process.myUid(),
+				context.packageName
+			) == AppOpsManager.MODE_ALLOWED
+		}
+	}
+
+	// 起動回数を取得
+	private fun getAppLaunchCounts(context: Context): Map<String, Int> {
+		val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+
+		val endTime = System.currentTimeMillis()
+		val startTime = endTime - durationMillis // 過去24時間
+
+		val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
+		val appLaunchCount = mutableMapOf<String, Int>()
+
+		val event = UsageEvents.Event()
+		while (usageEvents.hasNextEvent()) {
+			usageEvents.getNextEvent(event)
+			if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
+				val packageName=event.packageName
+				appLaunchCount[packageName] = appLaunchCount.getOrDefault(packageName, 0) + 1
+			}
+		}
+		return appLaunchCount.toSortedMap(compareByDescending { appLaunchCount[it] })
+	}
 }
 
 // パッケージ名からアプリ名を取得

@@ -1,3 +1,10 @@
 <resources>
 	<string name="app_name">AppFreq</string>
+	<string-array name="duration_options">
+		<item>a day</item>
+		<item>a week</item>
+		<item>a month</item>
+		<item>a year</item>
+		<item>all time</item>
+	</string-array>
 </resources>
