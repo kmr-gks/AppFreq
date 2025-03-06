@@ -15,15 +15,9 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Spinner
-import android.widget.Switch
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.gukos.appfreq.ui.theme.AppFreqTheme
 
 
 class MainActivity : ComponentActivity() {
@@ -41,9 +35,9 @@ class MainActivity : ComponentActivity() {
 		ArrayAdapter.createFromResource(
 			this,
 			R.array.duration_options,
-			android.R.layout.simple_spinner_item
+			R.xml.my_spinner_item
 		).also { adapter ->
-			adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+			adapter.setDropDownViewResource(R.xml.my_spinner_dropdown_item)
 			spinner.adapter = adapter
 		}
 
@@ -54,7 +48,7 @@ class MainActivity : ComponentActivity() {
 				val appLaunchCounts = getAppLaunchCounts(this@MainActivity)
 				if (appLaunchCounts.isNotEmpty()) {
 					val listItems = appLaunchCounts.map { "${getAppNameFromPackage(this@MainActivity,it.key)}: ${it.value} 回" }
-					val adapter = ArrayAdapter(this@MainActivity, R.xml.simple_list_item, listItems)
+					val adapter = ArrayAdapter(this@MainActivity, R.xml.my_list_item, listItems)
 					listView.adapter = adapter
 				} else {
 					Toast.makeText(this@MainActivity, "データが取得できませんでした", Toast.LENGTH_LONG).show()
@@ -71,7 +65,7 @@ class MainActivity : ComponentActivity() {
 			val appLaunchCounts = getAppLaunchCounts(this)
 			if (appLaunchCounts.isNotEmpty()) {
 				val listItems = appLaunchCounts.map { "${getAppNameFromPackage(this,it.key)}: ${it.value} 回" }
-				val adapter = ArrayAdapter(this, R.xml.simple_list_item, listItems)
+				val adapter = ArrayAdapter(this, R.xml.my_list_item, listItems)
 				listView.adapter = adapter
 			} else {
 				Toast.makeText(this, "データが取得できませんでした", Toast.LENGTH_LONG).show()
@@ -98,7 +92,7 @@ class MainActivity : ComponentActivity() {
 				durationMillis = 1000L * 60 * 60 * 24 * 365
 			}
 			else -> {
-				durationMillis = 1000L * 60 * 60 * 24
+				durationMillis = 1000L * 60 * 60 * 24 * 365 * 10
 			}
 		}
 	}

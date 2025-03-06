@@ -25,4 +25,5 @@
     android:layout_height="wrap_content"
 	android:textColor="@color/text_color"
 	android:background="@color/background_color"
+	android:minHeight="48dp"
     android:ellipsize="marquee"/>
